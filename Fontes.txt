@@ -1,0 +1,9 @@
+https://how2electronics.com/connecting-rs485-soil-moisture-temperature-sensor-to-arduino/
+
+https://www.usinainfo.com.br/esp8266/nodemcu-v3-esp8266-esp-12e-ch340-micro-usb-4420.html
+
+https://dev.to/vultr/installing-mosquitto-mqtt-broker-on-ubuntu-2404-535m
+
+https://mosquitto.org/man/mosquitto-8.html
+
+https://arduinojson.org/v7/tutorial/serialization/
