@@ -1,0 +1,3 @@
+https://how2electronics.com/connecting-rs485-soil-moisture-temperature-sensor-to-arduino/
+
+https://www.usinainfo.com.br/esp8266/nodemcu-v3-esp8266-esp-12e-ch340-micro-usb-4420.html

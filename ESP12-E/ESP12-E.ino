@@ -1,33 +1,38 @@
-#include <SoftwareSerial.h>
-#include <PubSubClient.h>
+ #include <PubSubClient.h>
+
+extern PubSubClient client;       // Tells the compiler that 'client' is defined in another file
+extern const char* mqtt_server;   // Tells the compiler that 'mqtt_server' is defined in another file
 
 // Define the pins for RS485 communication
 #define RE 21
 #define DE 19
-#define RX 16
-#define TX 17
-
-extern PubSubClient client;       // Tells the compiler that 'client' is defined in another file
-extern const char* mqtt_server;   // Tells the compiler that 'mqtt_server' is defined in another file
+#define RX2 16
+#define TX2 17
+#define LED 2 // Led para indicar conexão ao wifi
 
  
 // Request frame for the soil sensor
 const byte soilSensorRequest[] = {0x01, 0x03, 0x00, 0x00, 0x00, 0x07, 0x04, 0x08};
 byte soilSensorResponse[19]; // Cria um vetor contendo 9 bytes
-
+// SoftwareSerial mod(12, 13); // Software serial for RS485 communication / Pino 2 para Receiver e Pino 3 para Transmitter
  
  
 void setup()
 {
-  //pinMode(BUILTIN_LED, OUTPUT);     // Initialize the BUILTIN_LED pin as an output
-  Serial.begin(115200);
-  //setup_wifi();
-  //client.setServer(mqtt_server, 1883);
-  //client.setCallback(callback);
+  Serial.begin(115200); // Initializ e serial communication for debugging
+  // mod.begin(4800);    // Initialize software serial communication at 4800 baud rate
 
-  Serial1.begin(9600, SERIAL_8N1, RX, TX); ;    // Initialize software serial communication at 4800 baud rate
+  setup_wifi();
+  client.setServer(mqtt_server, 1883);
+  client.setCallback(callback);
+  
+  // Initialize ESP32 hardware Serial2 on pins 12 (RX) and 13 (TX)
+  Serial2.begin(4800, SERIAL_8N1, RX2, TX2);
+  
   pinMode(RE, OUTPUT); // Set RE pin as output
   pinMode(DE, OUTPUT); // Set RE pin as output
+
+  pinMode(LED, OUTPUT);
 
 }
  
@@ -35,45 +40,52 @@ void setup()
 void loop()
 {
 
-  //econnect();
-  //client.loop();
+  reconnect();
+  client.loop();
+  
+  // Clear incoming buffer before sending a new request to prevent old data interference
+  while(Serial2.available() > 0) { Serial2.read(); }
+
   // Start the transmission mode for RS485
   digitalWrite(RE, HIGH);
   digitalWrite(DE, HIGH);
 
-  delay(500);
+  delay(10);
  
   // Send the request frame to the soil sensor
-  Serial1.write(soilSensorRequest, sizeof(soilSensorRequest));
+  Serial2.write(soilSensorRequest, sizeof(soilSensorRequest));
+  
+  // Wait until all bytes are physically transmitted before flipping RE/DE pins
+  Serial2.flush();
  
   // End the transmission mode and set to receive mode for RS485
   digitalWrite(RE, LOW);
   digitalWrite(DE, LOW);
 
-  delay(500);
+  delay(10);
  
   // Wait for the response from the sensor or timeout after 1 second
   unsigned long startTime = millis();
-  while (Serial1.available() < 19 && millis() - startTime < 1000)
+  while (Serial2.available() < 19 && millis() - startTime < 1000)
   {
     delay(1);
   }
  
-  if (Serial1.available() >= 19) // If valid response received
+  if (Serial2.available() >= 19) // If valid response received
   {
     // Read the response from the sensor
     byte index = 0;
-    while (Serial1.available() && index < 19)
+    while (Serial2.available() && index < 19)
     {
-      soilSensorResponse[index] = Serial1.read();
-      Serial.print(soilSensorResponse[index], HEX); // Print the received byte in HEX format
-      Serial.print(" ");
+      soilSensorResponse[index] = Serial2.read();
+     // Serial.print(soilSensorResponse[index], HEX); // Print the received byte in HEX format
+     // Serial.print(" ");
       index++;
     }
     Serial.println();
  
     // Parse and calculate the Moisture value
-    int Moisture_Int = int(soilSensorResponse[3] << 8 | soilSensorResponse[4]);
+    int Moisture_Int = (int)(soilSensorResponse[3] << 8 | soilSensorResponse[4]);
     float Moisture_Percent = Moisture_Int / 10.0;
  
     Serial.print("Moisture: ");
@@ -81,7 +93,7 @@ void loop()
     Serial.println(" %RH");
  
     // Parse and calculate the Temperature value
-    int Temperature_Int = int(soilSensorResponse[5] << 8 | soilSensorResponse[6]);
+    int Temperature_Int = (int)(soilSensorResponse[5] << 8 | soilSensorResponse[6]);
     float Temperature_Celsius = Temperature_Int / 10.0;
  
     // Check if temperature is negative and convert accordingly
@@ -96,28 +108,28 @@ void loop()
     Serial.println(" °C");
 
     // Parse and calculate the Conductivity value
-    int Conductivity = int(soilSensorResponse[7] << 8 | soilSensorResponse[8]);
+    int Conductivity = (int)(soilSensorResponse[7] << 8 | soilSensorResponse[8]);
  
     Serial.print("Conductivity: ");
     Serial.print(Conductivity);
     Serial.println(" us/cm");
 
     // Parse and calculate the Conductivity value
-    int nitrogen = int(soilSensorResponse[11] << 8 | soilSensorResponse[12]);
+    int nitrogen = (int)(soilSensorResponse[11] << 8 | soilSensorResponse[12]);
  
     Serial.print("Nitrogen: ");
     Serial.print(nitrogen);
     Serial.println(" mg/kg");
 
     // Parse and calculate the Conductivity value
-    int phosphorus = int(soilSensorResponse[13] << 8 | soilSensorResponse[14]);
+    int phosphorus = (int)(soilSensorResponse[13] << 8 | soilSensorResponse[14]);
  
     Serial.print("phosphorus: ");
     Serial.print(phosphorus);
     Serial.println(" mg/kg");
 
     // Parse and calculate the Conductivity value
-    int potassium = int(soilSensorResponse[15] << 8 | soilSensorResponse[16]);
+    int potassium = (int)(soilSensorResponse[15] << 8 | soilSensorResponse[16]);
  
     Serial.print("Potassium: ");
     Serial.print(potassium);
@@ -131,5 +143,3 @@ void loop()
  
   delay(1000); // Wait for a second before the next loop iteration
 }
-
-

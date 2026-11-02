@@ -1,4 +1,4 @@
-#include <ESP8266WiFi.h>
+#include <WiFi.h>
 #include <PubSubClient.h>
 
 // Update these with values suitable for your network.
@@ -52,6 +52,7 @@ void reconnect() {
 
     if (client.connect("ESP12E")) {
       Serial.println("DEVICE SIGNED");
+      digitalWrite(LED, HIGH);
       // Once connected, publish an announcement...
       client.subscribe("inTopic");
     } else {
