@@ -1,21 +1,31 @@
 #include <SoftwareSerial.h>
+#include <PubSubClient.h>
 
- 
 // Define the pins for RS485 communication
-#define RE 5
-#define DE 4
+#define RE 21
+#define DE 19
+#define RX 16
+#define TX 17
+
+extern PubSubClient client;       // Tells the compiler that 'client' is defined in another file
+extern const char* mqtt_server;   // Tells the compiler that 'mqtt_server' is defined in another file
 
  
 // Request frame for the soil sensor
 const byte soilSensorRequest[] = {0x01, 0x03, 0x00, 0x00, 0x00, 0x07, 0x04, 0x08};
 byte soilSensorResponse[19]; // Cria um vetor contendo 9 bytes
-SoftwareSerial mod(12, 13); // Software serial for RS485 communication / Pino 2 para Receiver e Pino 3 para Transmitter
+
  
  
 void setup()
 {
-  Serial.begin(115200); // Initializ e serial communication for debugging
-  mod.begin(4800);    // Initialize software serial communication at 4800 baud rate
+  //pinMode(BUILTIN_LED, OUTPUT);     // Initialize the BUILTIN_LED pin as an output
+  Serial.begin(115200);
+  //setup_wifi();
+  //client.setServer(mqtt_server, 1883);
+  //client.setCallback(callback);
+
+  Serial1.begin(9600, SERIAL_8N1, RX, TX); ;    // Initialize software serial communication at 4800 baud rate
   pinMode(RE, OUTPUT); // Set RE pin as output
   pinMode(DE, OUTPUT); // Set RE pin as output
 
@@ -24,37 +34,40 @@ void setup()
  
 void loop()
 {
+
+  //econnect();
+  //client.loop();
   // Start the transmission mode for RS485
   digitalWrite(RE, HIGH);
   digitalWrite(DE, HIGH);
 
-  delay(10);
+  delay(500);
  
   // Send the request frame to the soil sensor
-  mod.write(soilSensorRequest, sizeof(soilSensorRequest));
+  Serial1.write(soilSensorRequest, sizeof(soilSensorRequest));
  
   // End the transmission mode and set to receive mode for RS485
   digitalWrite(RE, LOW);
   digitalWrite(DE, LOW);
 
-  delay(10);
+  delay(500);
  
   // Wait for the response from the sensor or timeout after 1 second
   unsigned long startTime = millis();
-  while (mod.available() < 19 && millis() - startTime < 1000)
+  while (Serial1.available() < 19 && millis() - startTime < 1000)
   {
     delay(1);
   }
  
-  if (mod.available() >= 19) // If valid response received
+  if (Serial1.available() >= 19) // If valid response received
   {
     // Read the response from the sensor
     byte index = 0;
-    while (mod.available() && index < 19)
+    while (Serial1.available() && index < 19)
     {
-      soilSensorResponse[index] = mod.read();
-     // Serial.print(soilSensorResponse[index], HEX); // Print the received byte in HEX format
-     // Serial.print(" ");
+      soilSensorResponse[index] = Serial1.read();
+      Serial.print(soilSensorResponse[index], HEX); // Print the received byte in HEX format
+      Serial.print(" ");
       index++;
     }
     Serial.println();
@@ -118,3 +131,5 @@ void loop()
  
   delay(1000); // Wait for a second before the next loop iteration
 }
+
+
