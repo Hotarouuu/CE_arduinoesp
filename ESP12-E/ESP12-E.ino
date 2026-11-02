@@ -1,7 +1,10 @@
- #include <PubSubClient.h>
+#include <PubSubClient.h>
+#include <ArduinoJson.h>
 
+// Variaveis Globais
 extern PubSubClient client;       // Tells the compiler that 'client' is defined in another file
 extern const char* mqtt_server;   // Tells the compiler that 'mqtt_server' is defined in another file
+JsonDocument doc;
 
 // Define the pins for RS485 communication
 #define RE 21
@@ -134,6 +137,24 @@ void loop()
     Serial.print("Potassium: ");
     Serial.print(potassium);
     Serial.println(" mg/kg");
+
+    // Criação do Payload para enviar ao broker
+
+    doc["moisture"].add(Moisture_Percent);
+    doc["temperature"].add(Temperature_Celsius);
+    doc["conductivity"].add(Conductivity);
+    doc["nitrogen"].add(nitrogen);
+    doc["phosphorus"].add(phosphorus);
+    doc["potassium"].add(potassium);
+
+    String jsonString;
+
+    serializeJson(doc, jsonString);
+
+    // Envia ao broker
+    client.publish("ce_project/sensor/payload", jsonString.c_str());
+
+
   }
   else
   {
